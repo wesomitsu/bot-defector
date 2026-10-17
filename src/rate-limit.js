@@ -13,10 +13,15 @@ export function createRateLimiter({ limit = 60, windowMs = 60_000, now = Date.no
       const t = now();
       const list = hits.get(key) ?? [];
       prune(list, t);
+      // Once a key is over the limit, extra hits aren't stored, so a flood from
+      // one IP can't grow memory. The count stops at limit + 1.
+      if (list.length > limit) {
+        return { count: list.length, limited: true, retryAfterMs: list[list.length - limit] + windowMs - t };
+      }
       list.push(t);
       hits.set(key, list);
-      const retryAfterMs = list.length > limit ? list[list.length - limit - 1] + windowMs - t : 0;
-      return { count: list.length, limited: list.length > limit, retryAfterMs };
+      const limited = list.length > limit;
+      return { count: list.length, limited, retryAfterMs: limited ? list[0] + windowMs - t : 0 };
     },
     // Drops keys with no recent hits so memory doesn't grow forever.
     sweep() {

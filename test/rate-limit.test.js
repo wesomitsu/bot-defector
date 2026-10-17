@@ -35,3 +35,15 @@ test('sweep forgets idle keys', () => {
   rl.sweep();
   assert.equal(rl.size(), 1);
 });
+
+test('a flood does not grow memory past limit + 1', () => {
+  let t = 0;
+  const rl = createRateLimiter({ limit: 3, windowMs: 1000, now: () => t });
+  for (let i = 0; i < 10_000; i++) rl.hit('flood');
+  const r = rl.hit('flood');
+  assert.equal(r.count, 4);
+  assert.equal(r.limited, true);
+  assert.equal(r.retryAfterMs, 1000);
+  t = 1000;
+  assert.equal(rl.hit('flood').limited, false);
+});
