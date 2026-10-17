@@ -64,9 +64,18 @@ export function botDefector(options = {}) {
   }
 
   // Works with Express, Connect, and plain node:http (call it with (req, res, next)).
+  const stats = { allowed: 0, blocked: 0, reasons: {} };
+
   function middleware(req, res, next = () => {}) {
     const verdict = check(req);
-    if (!verdict) return next();
+    if (!verdict) {
+      stats.allowed++;
+      return next();
+    }
+    stats.blocked++;
+    // Group "blocked agent: curl" and "trap: /.env" style reasons by their kind.
+    const kind = verdict.reason.split(':')[0];
+    stats.reasons[kind] = (stats.reasons[kind] ?? 0) + 1;
     onBlock(verdict, req);
     if (verdict.retryAfterMs) res.setHeader('Retry-After', Math.ceil(verdict.retryAfterMs / 1000));
     res.statusCode = verdict.status;
@@ -75,6 +84,7 @@ export function botDefector(options = {}) {
   }
 
   middleware.check = check;
+  middleware.stats = () => structuredClone(stats);
   middleware.unban = (ip) => banned.delete(ip);
   return middleware;
 }

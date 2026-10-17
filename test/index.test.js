@@ -70,3 +70,12 @@ test('traps can be customised or turned off', () => {
   assert.equal(botDefector({ traps: ['/secret-trap/'] }).check(req('9.9.9.9', CHROME, {}, '/secret-trap')).status, 403);
   assert.equal(botDefector({ traps: [] }).check(req('9.9.9.9', CHROME, {}, '/.env')), null);
 });
+
+test('counts allowed and blocked requests by reason', () => {
+  const mw = botDefector();
+  mw(req('1.1.1.1'), res());
+  mw(req('1.1.1.2', 'curl/8'), res());
+  mw(req('1.1.1.3', 'wget/1'), res());
+  mw(req('1.1.1.4', CHROME, {}, '/.env'), res());
+  assert.deepEqual(mw.stats(), { allowed: 1, blocked: 3, reasons: { 'blocked agent': 2, trap: 1 } });
+});
