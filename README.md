@@ -55,6 +55,7 @@ botDefector({
 The returned middleware also has:
 - `check(req)`: returns `null` or the verdict, without sending a response
 - `unban(ip)`: lifts a trap ban
+- `stats()`: counts so far, like `{ allowed: 120, blocked: 7, reasons: { 'blocked agent': 5, trap: 2 } }`
 
 ## Lists in a file
 
