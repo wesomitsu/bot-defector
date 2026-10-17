@@ -56,6 +56,22 @@ The returned middleware also has:
 - `check(req)`: returns `null` or the verdict, without sending a response
 - `unban(ip)`: lifts a trap ban
 
+## Lists in a file
+
+Keep long lists in a text file, one IP or range per line, with `#` comments:
+
+```text
+# blocklist.txt
+203.0.113.0/24   # scraper network
+198.51.100.7
+```
+
+```js
+import { botDefector, loadIpList } from 'bot-defector';
+
+app.use(botDefector({ blockIps: loadIpList('./blocklist.txt') }));
+```
+
 ## Behind a proxy
 
 If your site runs behind Nginx, Cloudflare or a load balancer, every request

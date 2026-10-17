@@ -5,6 +5,7 @@ import { checkUserAgent } from './user-agent.js';
 export { checkUserAgent, BAD_AGENTS, GOOD_AGENTS } from './user-agent.js';
 export { ipMatcher, parseIp } from './ip.js';
 export { createRateLimiter } from './rate-limit.js';
+export { loadIpList, parseIpList } from './list.js';
 
 // The client IP. Only reads X-Forwarded-For when trustProxy is on, because
 // anyone can send that header when there's no proxy in front of you.
