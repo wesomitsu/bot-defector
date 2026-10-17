@@ -24,6 +24,9 @@ export function botDefector(options = {}) {
     trustProxy = false,
     userAgents = true,
     rateLimit = { limit: 120, windowMs: 60_000 },
+    // Real browsers always send Accept and Accept-Language on page loads. Off by
+    // default because API clients and some monitors don't.
+    requireBrowserHeaders = false,
     onBlock = () => {},
     // Paths no real visitor asks for. Hitting one bans that IP for banMs.
     traps = ['/wp-login.php', '/wp-admin', '/xmlrpc.php', '/.env', '/.git/config', '/phpmyadmin'],
@@ -55,6 +58,10 @@ export function botDefector(options = {}) {
     if (userAgents) {
       const ua = checkUserAgent(req.headers?.['user-agent'], userAgents === true ? {} : userAgents);
       if (ua.bot) return { ip, status: 403, reason: ua.reason };
+    }
+    if (requireBrowserHeaders && !(req.headers?.accept && req.headers?.['accept-language'])) {
+      const ua = checkUserAgent(req.headers?.['user-agent']);
+      if (!ua.reason?.startsWith('allowed agent')) return { ip, status: 403, reason: 'missing browser headers' };
     }
     if (limiter) {
       const r = limiter.hit(ip);

@@ -46,6 +46,7 @@ botDefector({
   trustProxy: false,                 // true if you're behind Nginx, Cloudflare, a load balancer...
   userAgents: true,                  // false to skip, or { block: [...], allow: [...] } to use your own lists
   rateLimit: { limit: 120, windowMs: 60_000 }, // false to turn off
+  requireBrowserHeaders: false,      // true: block requests without Accept + Accept-Language (not for APIs)
   traps: ['/wp-login.php', '/.env'], // [] to turn off
   banMs: 60 * 60_000,                // how long a trap ban lasts
   onBlock: (verdict, req) => console.log(verdict), // { ip, status, reason }
