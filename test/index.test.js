@@ -56,3 +56,17 @@ test('only trusts X-Forwarded-For when told to', () => {
   assert.equal(clientIp(r), '127.0.0.1');
   assert.equal(clientIp(r, true), '198.51.100.7');
 });
+
+test('a trap path bans the IP for every later request', () => {
+  const mw = botDefector();
+  assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/wp-login.php?x=1')).reason, 'trap: /wp-login.php');
+  assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/')).reason, 'banned after trap');
+  assert.equal(mw.check(req('8.8.8.8', CHROME, {}, '/')), null);
+  mw.unban('7.7.7.7');
+  assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/')), null);
+});
+
+test('traps can be customised or turned off', () => {
+  assert.equal(botDefector({ traps: ['/secret-trap/'] }).check(req('9.9.9.9', CHROME, {}, '/secret-trap')).status, 403);
+  assert.equal(botDefector({ traps: [] }).check(req('9.9.9.9', CHROME, {}, '/.env')), null);
+});
