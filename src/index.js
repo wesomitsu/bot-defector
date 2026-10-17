@@ -24,18 +24,33 @@ export function botDefector(options = {}) {
     userAgents = true,
     rateLimit = { limit: 120, windowMs: 60_000 },
     onBlock = () => {},
+    // Paths no real visitor asks for. Hitting one bans that IP for banMs.
+    traps = ['/wp-login.php', '/wp-admin', '/xmlrpc.php', '/.env', '/.git/config', '/phpmyadmin'],
+    banMs = 60 * 60_000,
   } = options;
 
   const allowed = ipMatcher(allowIps);
   const blocked = ipMatcher(blockIps);
+  const banned = new Map();
+  const norm = (p) => String(p).split('?')[0].toLowerCase().replace(/\/+$/, '');
+  const trapSet = new Set(traps.map(norm));
   const limiter = rateLimit ? createRateLimiter(rateLimit) : null;
-  if (limiter) setInterval(limiter.sweep, rateLimit.windowMs ?? 60_000).unref();
+  setInterval(() => {
+    limiter?.sweep();
+    const t = Date.now();
+    for (const [ip, until] of banned) if (until <= t) banned.delete(ip);
+  }, rateLimit?.windowMs ?? 60_000).unref();
 
   // Returns null to let the request through, or { ip, status, reason, retryAfterMs }.
   function check(req) {
     const ip = clientIp(req, trustProxy);
     if (allowed(ip)) return null;
     if (blocked(ip)) return { ip, status: 403, reason: 'blocked IP' };
+    if ((banned.get(ip) ?? 0) > Date.now()) return { ip, status: 403, reason: 'banned after trap' };
+    if (trapSet.has(norm(req.url ?? ''))) {
+      banned.set(ip, Date.now() + banMs);
+      return { ip, status: 403, reason: `trap: ${String(req.url).split('?')[0]}` };
+    }
     if (userAgents) {
       const ua = checkUserAgent(req.headers?.['user-agent'], userAgents === true ? {} : userAgents);
       if (ua.bot) return { ip, status: 403, reason: ua.reason };
@@ -59,5 +74,6 @@ export function botDefector(options = {}) {
   }
 
   middleware.check = check;
+  middleware.unban = (ip) => banned.delete(ip);
   return middleware;
 }
