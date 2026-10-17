@@ -1,0 +1,13 @@
+{
+  "name": "bot-defector",
+  "version": "1.0.0",
+  "description": "Simple bot detection and IP blocking middleware for Node.js websites. No dependencies.",
+  "type": "module",
+  "exports": "./src/index.js",
+  "files": ["src"],
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=18" },
+  "keywords": ["bot", "security", "rate-limit", "ip-block", "middleware", "express"],
+  "author": "wesomitsu",
+  "license": "MIT"
+}
