@@ -50,6 +50,7 @@ botDefector({
   traps: ['/wp-login.php', '/.env'], // [] to turn off
   banMs: 60 * 60_000,                // how long a trap ban lasts
   onBlock: (verdict, req) => console.log(verdict), // { ip, status, reason }
+  respond: (verdict, req, res) => res.status(verdict.status).json({ error: 'blocked' }), // optional custom page/JSON
 });
 ```
 

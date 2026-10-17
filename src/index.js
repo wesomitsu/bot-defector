@@ -28,6 +28,8 @@ export function botDefector(options = {}) {
     // default because API clients and some monitors don't.
     requireBrowserHeaders = false,
     onBlock = () => {},
+    // Custom block response: (verdict, req, res) => void. Must end the response.
+    respond = null,
     // Paths no real visitor asks for. Hitting one bans that IP for banMs.
     traps = ['/wp-login.php', '/wp-admin', '/xmlrpc.php', '/.env', '/.git/config', '/phpmyadmin'],
     banMs = 60 * 60_000,
@@ -85,6 +87,7 @@ export function botDefector(options = {}) {
     stats.reasons[kind] = (stats.reasons[kind] ?? 0) + 1;
     onBlock(verdict, req);
     if (verdict.retryAfterMs) res.setHeader('Retry-After', Math.ceil(verdict.retryAfterMs / 1000));
+    if (respond) return respond(verdict, req, res);
     res.statusCode = verdict.status;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.end(verdict.status === 429 ? 'Too many requests\n' : 'Forbidden\n');
