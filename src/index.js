@@ -1,0 +1,63 @@
+import { ipMatcher } from './ip.js';
+import { createRateLimiter } from './rate-limit.js';
+import { checkUserAgent } from './user-agent.js';
+
+export { checkUserAgent, BAD_AGENTS, GOOD_AGENTS } from './user-agent.js';
+export { ipMatcher, parseIp } from './ip.js';
+export { createRateLimiter } from './rate-limit.js';
+
+// The client IP. Only reads X-Forwarded-For when trustProxy is on, because
+// anyone can send that header when there's no proxy in front of you.
+export function clientIp(req, trustProxy = false) {
+  if (trustProxy) {
+    const forwarded = req.headers?.['x-forwarded-for'];
+    if (forwarded) return String(forwarded).split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress ?? '';
+}
+
+export function botDefector(options = {}) {
+  const {
+    allowIps = [],
+    blockIps = [],
+    trustProxy = false,
+    userAgents = true,
+    rateLimit = { limit: 120, windowMs: 60_000 },
+    onBlock = () => {},
+  } = options;
+
+  const allowed = ipMatcher(allowIps);
+  const blocked = ipMatcher(blockIps);
+  const limiter = rateLimit ? createRateLimiter(rateLimit) : null;
+  if (limiter) setInterval(limiter.sweep, rateLimit.windowMs ?? 60_000).unref();
+
+  // Returns null to let the request through, or { ip, status, reason, retryAfterMs }.
+  function check(req) {
+    const ip = clientIp(req, trustProxy);
+    if (allowed(ip)) return null;
+    if (blocked(ip)) return { ip, status: 403, reason: 'blocked IP' };
+    if (userAgents) {
+      const ua = checkUserAgent(req.headers?.['user-agent'], userAgents === true ? {} : userAgents);
+      if (ua.bot) return { ip, status: 403, reason: ua.reason };
+    }
+    if (limiter) {
+      const r = limiter.hit(ip);
+      if (r.limited) return { ip, status: 429, reason: 'rate limited', retryAfterMs: r.retryAfterMs };
+    }
+    return null;
+  }
+
+  // Works with Express, Connect, and plain node:http (call it with (req, res, next)).
+  function middleware(req, res, next = () => {}) {
+    const verdict = check(req);
+    if (!verdict) return next();
+    onBlock(verdict, req);
+    if (verdict.retryAfterMs) res.setHeader('Retry-After', Math.ceil(verdict.retryAfterMs / 1000));
+    res.statusCode = verdict.status;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.end(verdict.status === 429 ? 'Too many requests\n' : 'Forbidden\n');
+  }
+
+  middleware.check = check;
+  return middleware;
+}
