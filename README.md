@@ -1,3 +1,80 @@
 # bot-defector
 
-Simple bot detection and IP blocking middleware for Node.js websites.
+Simple bot detection and IP blocking for Node.js websites. One middleware,
+no dependencies, nothing to sign up for and no API keys.
+
+It blocks:
+- **Bot user agents**: `curl`, `python-requests`, headless browsers, SEO scrapers and similar, while letting search engines and link previews through
+- **Blocked IPs and ranges**: single IPs or CIDR ranges, IPv4 and IPv6
+- **Trap paths**: an IP that asks for `/wp-login.php`, `/.env` and the like is banned for an hour
+- **Too many requests**: 120 per minute per IP by default, answered with `429` and `Retry-After`
+
+## Install
+
+```sh
+npm install github:wesomitsu/bot-defector
+```
+
+## Express
+
+```js
+import express from 'express';
+import { botDefector } from 'bot-defector';
+
+const app = express();
+app.use(botDefector());
+```
+
+## Plain Node
+
+```js
+import { createServer } from 'node:http';
+import { botDefector } from 'bot-defector';
+
+const defend = botDefector();
+createServer((req, res) => defend(req, res, () => res.end('Hello'))).listen(3000);
+```
+
+See [`examples/server.js`](examples/server.js) for a runnable version.
+
+## Options
+
+```js
+botDefector({
+  allowIps: ['10.0.0.0/8'],          // never blocked (your office, monitoring)
+  blockIps: ['203.0.113.0/24'],      // always blocked
+  trustProxy: false,                 // true if you're behind Nginx, Cloudflare, a load balancer...
+  userAgents: true,                  // false to skip, or { block: [...], allow: [...] } to use your own lists
+  rateLimit: { limit: 120, windowMs: 60_000 }, // false to turn off
+  traps: ['/wp-login.php', '/.env'], // [] to turn off
+  banMs: 60 * 60_000,                // how long a trap ban lasts
+  onBlock: (verdict, req) => console.log(verdict), // { ip, status, reason }
+});
+```
+
+The returned middleware also has:
+- `check(req)`: returns `null` or the verdict, without sending a response
+- `unban(ip)`: lifts a trap ban
+
+## Behind a proxy
+
+If your site runs behind Nginx, Cloudflare or a load balancer, every request
+looks like it comes from the proxy. Set `trustProxy: true` so the client IP is
+read from `X-Forwarded-For`. Only do this behind a proxy you control, because
+anyone can send that header otherwise.
+
+## Limits
+
+- User agents are easy to fake. This stops lazy and honest bots, not determined ones.
+- Bans and rate limits are kept in memory, per process. They reset on restart,
+  and each server counts on its own when you run several.
+
+## Development
+
+```sh
+npm test
+```
+
+## License
+
+MIT
