@@ -88,6 +88,10 @@ anyone can send that header otherwise.
 - Bans and rate limits are kept in memory, per process. They reset on restart,
   and each server counts on its own when you run several.
 
+## TypeScript
+
+Types are included (`src/index.d.ts`), no `@types` package needed.
+
 ## Development
 
 ```sh
