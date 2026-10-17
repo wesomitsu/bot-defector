@@ -89,3 +89,16 @@ test('requireBrowserHeaders blocks requests without Accept/Accept-Language', () 
   assert.equal(mw.check(req('2.2.2.4', google)), null);
   assert.equal(botDefector().check(req('2.2.2.5', CHROME)), null);
 });
+
+test('respond replaces the default block response', () => {
+  const mw = botDefector({
+    respond: (v, _req, r) => {
+      r.statusCode = v.status;
+      r.end(JSON.stringify({ error: v.reason }));
+    },
+  });
+  const r = res();
+  mw(req('3.3.3.3', 'curl/8'), r);
+  assert.equal(r.statusCode, 403);
+  assert.equal(r.body, '{"error":"blocked agent: curl"}');
+});
