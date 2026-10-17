@@ -79,3 +79,13 @@ test('counts allowed and blocked requests by reason', () => {
   mw(req('1.1.1.4', CHROME, {}, '/.env'), res());
   assert.deepEqual(mw.stats(), { allowed: 1, blocked: 3, reasons: { 'blocked agent': 2, trap: 1 } });
 });
+
+test('requireBrowserHeaders blocks requests without Accept/Accept-Language', () => {
+  const mw = botDefector({ requireBrowserHeaders: true });
+  const browser = { accept: 'text/html', 'accept-language': 'en-US' };
+  assert.equal(mw.check(req('2.2.2.2', CHROME, browser)), null);
+  assert.equal(mw.check(req('2.2.2.3', CHROME)).reason, 'missing browser headers');
+  const google = 'Mozilla/5.0 (compatible; Googlebot/2.1)';
+  assert.equal(mw.check(req('2.2.2.4', google)), null);
+  assert.equal(botDefector().check(req('2.2.2.5', CHROME)), null);
+});
