@@ -102,3 +102,15 @@ test('respond replaces the default block response', () => {
   assert.equal(r.statusCode, 403);
   assert.equal(r.body, '{"error":"blocked agent: curl"}');
 });
+
+test('dryRun reports blocks but lets every request through', () => {
+  const seen = [];
+  const mw = botDefector({ dryRun: true, onBlock: (v) => seen.push(v.reason) });
+  const r = res();
+  let called = false;
+  mw(req('1.2.3.4', 'curl/8.5'), r, () => (called = true));
+  assert.ok(called);
+  assert.equal(r.statusCode, undefined);
+  assert.deepEqual(seen, ['blocked agent: curl']);
+  assert.equal(mw.stats().blocked, 1);
+});

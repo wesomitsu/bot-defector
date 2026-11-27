@@ -49,6 +49,7 @@ botDefector({
   requireBrowserHeaders: false,      // true: block requests without Accept + Accept-Language (not for APIs)
   traps: ['/wp-login.php', '/.env'], // [] to turn off
   banMs: 60 * 60_000,                // how long a trap ban lasts
+  dryRun: false,                     // true: only report (onBlock, stats), never block
   onBlock: (verdict, req) => console.log(verdict), // { ip, status, reason }
   respond: (verdict, req, res) => res.status(verdict.status).json({ error: 'blocked' }), // optional custom page/JSON
 });
@@ -58,6 +59,15 @@ The returned middleware also has:
 - `check(req)`: returns `null` or the verdict, without sending a response
 - `unban(ip)`: lifts a trap ban
 - `stats()`: counts so far, like `{ allowed: 120, blocked: 7, reasons: { 'blocked agent': 5, trap: 2 } }`
+
+## Trying it out safely
+
+Start with `dryRun: true` to see what would be blocked before blocking anything.
+Every request goes through, while `onBlock` and `stats()` report as usual:
+
+```js
+app.use(botDefector({ dryRun: true, onBlock: (v) => console.log('would block', v) }));
+```
 
 ## Lists in a file
 

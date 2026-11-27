@@ -22,6 +22,7 @@ export interface Options {
   requireBrowserHeaders?: boolean;
   traps?: string[];
   banMs?: number;
+  dryRun?: boolean;
   onBlock?: (verdict: Verdict, req: IncomingMessage) => void;
   respond?: ((verdict: Verdict, req: IncomingMessage, res: ServerResponse) => void) | null;
 }
