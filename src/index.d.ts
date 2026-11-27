@@ -30,6 +30,7 @@ export interface Options {
 export interface BotDefector {
   (req: IncomingMessage, res: ServerResponse, next?: (err?: unknown) => void): void;
   check(req: IncomingMessage): Verdict | null;
+  ban(ip: string, ms?: number): void;
   unban(ip: string): boolean;
   stats(): Stats;
 }

@@ -60,7 +60,7 @@ test('only trusts X-Forwarded-For when told to', () => {
 test('a trap path bans the IP for every later request', () => {
   const mw = botDefector();
   assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/wp-login.php?x=1')).reason, 'trap: /wp-login.php');
-  assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/')).reason, 'banned after trap');
+  assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/')).reason, 'banned');
   assert.equal(mw.check(req('8.8.8.8', CHROME, {}, '/')), null);
   mw.unban('7.7.7.7');
   assert.equal(mw.check(req('7.7.7.7', CHROME, {}, '/')), null);
@@ -113,4 +113,15 @@ test('dryRun reports blocks but lets every request through', () => {
   assert.equal(r.statusCode, undefined);
   assert.deepEqual(seen, ['blocked agent: curl']);
   assert.equal(mw.stats().blocked, 1);
+});
+
+test('ban(ip) blocks that IP until it expires or is unbanned', () => {
+  const mw = botDefector();
+  mw.ban('1.2.3.4');
+  assert.equal(mw.check(req('1.2.3.4')).status, 403);
+  assert.equal(mw.check(req('5.6.7.8')), null);
+  mw.unban('1.2.3.4');
+  assert.equal(mw.check(req('1.2.3.4')), null);
+  mw.ban('1.2.3.4', -1);
+  assert.equal(mw.check(req('1.2.3.4')), null);
 });

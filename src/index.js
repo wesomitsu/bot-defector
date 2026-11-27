@@ -54,7 +54,7 @@ export function botDefector(options = {}) {
     const ip = clientIp(req, trustProxy);
     if (allowed(ip)) return null;
     if (blocked(ip)) return { ip, status: 403, reason: 'blocked IP' };
-    if ((banned.get(ip) ?? 0) > Date.now()) return { ip, status: 403, reason: 'banned after trap' };
+    if ((banned.get(ip) ?? 0) > Date.now()) return { ip, status: 403, reason: 'banned' };
     if (trapSet.has(norm(req.url ?? ''))) {
       banned.set(ip, Date.now() + banMs);
       return { ip, status: 403, reason: `trap: ${String(req.url).split('?')[0]}` };
@@ -98,6 +98,7 @@ export function botDefector(options = {}) {
 
   middleware.check = check;
   middleware.stats = () => structuredClone(stats);
+  middleware.ban = (ip, ms = banMs) => void banned.set(ip, Date.now() + ms);
   middleware.unban = (ip) => banned.delete(ip);
   return middleware;
 }
