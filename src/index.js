@@ -33,6 +33,8 @@ export function botDefector(options = {}) {
     // Paths no real visitor asks for. Hitting one bans that IP for banMs.
     traps = ['/wp-login.php', '/wp-admin', '/xmlrpc.php', '/.env', '/.git/config', '/phpmyadmin'],
     banMs = 60 * 60_000,
+    // Report-only: count and call onBlock, but let every request through.
+    dryRun = false,
   } = options;
 
   const allowed = ipMatcher(allowIps);
@@ -86,6 +88,7 @@ export function botDefector(options = {}) {
     const kind = verdict.reason.split(':')[0];
     stats.reasons[kind] = (stats.reasons[kind] ?? 0) + 1;
     onBlock(verdict, req);
+    if (dryRun) return next();
     if (verdict.retryAfterMs) res.setHeader('Retry-After', Math.ceil(verdict.retryAfterMs / 1000));
     if (respond) return respond(verdict, req, res);
     res.statusCode = verdict.status;
