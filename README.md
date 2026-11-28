@@ -50,6 +50,7 @@ botDefector({
   traps: ['/wp-login.php', '/.env'], // [] to turn off
   banMs: 60 * 60_000,                // how long a trap ban lasts
   dryRun: false,                     // true: only report (onBlock, stats), never block
+  skip: (req) => req.url === '/healthz', // let some requests through unchecked
   onBlock: (verdict, req) => console.log(verdict), // { ip, status, reason }
   respond: (verdict, req, res) => res.status(verdict.status).json({ error: 'blocked' }), // optional custom page/JSON
 });
@@ -60,6 +61,8 @@ The returned middleware also has:
 - `ban(ip, ms = banMs)`: bans an IP yourself, e.g. after too many failed logins
 - `unban(ip)`: lifts a ban
 - `stats()`: counts so far, like `{ allowed: 120, blocked: 7, reasons: { 'blocked agent': 5, trap: 2 } }`
+
+Uptime monitors often use `curl` and would be blocked as bots; `skip` lets their health check through without touching the other checks.
 
 ## Trying it out safely
 

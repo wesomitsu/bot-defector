@@ -125,3 +125,9 @@ test('ban(ip) blocks that IP until it expires or is unbanned', () => {
   mw.ban('1.2.3.4', -1);
   assert.equal(mw.check(req('1.2.3.4')), null);
 });
+
+test('skip lets matching requests through unchecked', () => {
+  const mw = botDefector({ skip: (r) => r.url === '/healthz', rateLimit: { limit: 1, windowMs: 60_000 } });
+  for (let i = 0; i < 3; i++) assert.equal(mw.check(req('1.2.3.4', 'curl/8', {}, '/healthz')), null);
+  assert.equal(mw.check(req('1.2.3.4', 'curl/8', {}, '/')).reason, 'blocked agent: curl');
+});

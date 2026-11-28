@@ -35,6 +35,8 @@ export function botDefector(options = {}) {
     banMs = 60 * 60_000,
     // Report-only: count and call onBlock, but let every request through.
     dryRun = false,
+    // (req) => true lets a request through without any check, e.g. a health check.
+    skip = null,
   } = options;
 
   const allowed = ipMatcher(allowIps);
@@ -51,6 +53,7 @@ export function botDefector(options = {}) {
 
   // Returns null to let the request through, or { ip, status, reason, retryAfterMs }.
   function check(req) {
+    if (skip?.(req)) return null;
     const ip = clientIp(req, trustProxy);
     if (allowed(ip)) return null;
     if (blocked(ip)) return { ip, status: 403, reason: 'blocked IP' };

@@ -23,6 +23,7 @@ export interface Options {
   traps?: string[];
   banMs?: number;
   dryRun?: boolean;
+  skip?: ((req: IncomingMessage) => boolean) | null;
   onBlock?: (verdict: Verdict, req: IncomingMessage) => void;
   respond?: ((verdict: Verdict, req: IncomingMessage, res: ServerResponse) => void) | null;
 }
